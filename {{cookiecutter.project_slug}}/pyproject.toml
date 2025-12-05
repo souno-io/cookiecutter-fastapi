@@ -1,0 +1,62 @@
+[project]
+name = "{{ cookiecutter.project_slug }}"
+version = "{{ cookiecutter.version }}"
+description = "{{ cookiecutter.project_description }}"
+authors = [
+    {name = "{{ cookiecutter.author_name }}", email = "{{ cookiecutter.author_email }}"}
+]
+readme = "README.md"
+requires-python = ">={{ cookiecutter.python_version }}"
+license = {text = "MIT"}
+
+[tool.black]
+line-length = 88
+target-version = ['py{{ cookiecutter.python_version | replace(".", "") }}']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | alembic
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip = [".venv", "alembic"]
+known_first_party = ["app"]
+
+[tool.mypy]
+python_version = "{{ cookiecutter.python_version }}"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = ["alembic", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

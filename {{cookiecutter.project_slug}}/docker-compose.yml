@@ -1,0 +1,121 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: {{ cookiecutter.project_slug }}_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - DATABASE_NAME={{ cookiecutter.project_slug }}
+      {%- if cookiecutter.use_redis == "yes" %}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      {%- endif %}
+    depends_on:
+      db:
+        condition: service_healthy
+      {%- if cookiecutter.use_redis == "yes" %}
+      redis:
+        condition: service_healthy
+      {%- endif %}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - {{ cookiecutter.project_slug }}_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: postgres:15-alpine
+    container_name: {{ cookiecutter.project_slug }}_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - POSTGRES_DB={{ cookiecutter.project_slug }}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - {{ cookiecutter.project_slug }}_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  {%- if cookiecutter.use_redis == "yes" %}
+  redis:
+    image: redis:7-alpine
+    container_name: {{ cookiecutter.project_slug }}_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - {{ cookiecutter.project_slug }}_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  {%- endif %}
+
+  {%- if cookiecutter.use_celery == "yes" %}
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: {{ cookiecutter.project_slug }}_celery_worker
+    command: celery -A app.celery_app worker -l info
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      - db
+      - redis
+    networks:
+      - {{ cookiecutter.project_slug }}_network
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: {{ cookiecutter.project_slug }}_celery_beat
+    command: celery -A app.celery_app beat -l info
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      - db
+      - redis
+    networks:
+      - {{ cookiecutter.project_slug }}_network
+  {%- endif %}
+
+networks:
+  {{ cookiecutter.project_slug }}_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  {%- if cookiecutter.use_redis == "yes" %}
+  redis_data:
+  {%- endif %}
