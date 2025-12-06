@@ -2,10 +2,10 @@
 用户模型定义。
 """
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Boolean, Column, String, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy import Boolean, String, Text
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from app.db.base import Base
 
@@ -30,16 +30,16 @@ class User(Base):
     
     __tablename__ = "users"
     
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
-    full_name = Column(String(255), nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
-    is_superuser = Column(Boolean, default=False, nullable=False)
-    avatar = Column(String(500), nullable=True)
-    bio = Column(Text, nullable=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    avatar: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # 关联关系
-    roles: List["Role"] = relationship(
+    roles: Mapped[list["Role"]] = relationship(
         "Role",
         secondary="user_roles",
         back_populates="users",
@@ -50,7 +50,7 @@ class User(Base):
         return f"<User(id={self.id}, email={self.email})>"
     
     @property
-    def role_names(self) -> List[str]:
+    def role_names(self) -> list[str]:
         """获取角色名称列表。"""
         return [role.name for role in self.roles]
     
@@ -58,6 +58,6 @@ class User(Base):
         """检查用户是否拥有特定角色。"""
         return role_name in self.role_names
     
-    def has_any_role(self, role_names: List[str]) -> bool:
+    def has_any_role(self, role_names: list[str]) -> bool:
         """检查用户是否拥有指定角色中的任一个。"""
         return any(role in self.role_names for role in role_names)

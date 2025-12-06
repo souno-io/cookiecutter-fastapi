@@ -3,14 +3,13 @@ SQLAlchemy 基础模型，包含通用字段和方法。
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Optional
 
-from sqlalchemy import Column, DateTime, Integer
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
+from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, declared_attr
 
 
-@as_declarative()
-class Base:
+class Base(DeclarativeBase):
     """
     所有 SQLAlchemy 模型的基类。
     
@@ -20,11 +19,8 @@ class Base:
     - 主键 id 字段
     """
     
-    id: Any
-    __name__: str
-    
     # 从类名自动生成 __tablename__
-    @declared_attr
+    @declared_attr.directive
     def __tablename__(cls) -> str:
         """从类名生成表名（snake_case）。"""
         import re
@@ -32,9 +28,13 @@ class Base:
         return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
     
     # 通用字段
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, 
+        default=datetime.utcnow, 
+        nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime, 
         default=datetime.utcnow, 
         onupdate=datetime.utcnow, 

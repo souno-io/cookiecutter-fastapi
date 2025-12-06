@@ -22,7 +22,7 @@ from app.core.config import settings
 from app.db.base import Base
 
 # Import all models to register them with Base
-from app.models import user, role  # noqa: F401
+from app.models import user, role, audit_log  # noqa: F401
 
 
 # this is the Alembic Config object

@@ -2,10 +2,10 @@
 RBAC 角色模型定义。
 """
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Table
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from app.db.base import Base
 
@@ -19,8 +19,10 @@ class UserRole(Base):
     
     __tablename__ = "user_roles"
     
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    role_id = Column(Integer, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True)
+    # 覆盖基类的 id，使用复合主键
+    id: Mapped[int] = mapped_column(Integer, primary_key=False, autoincrement=False, default=0)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    role_id: Mapped[int] = mapped_column(Integer, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True)
 
 
 class Role(Base):
@@ -36,12 +38,12 @@ class Role(Base):
     
     __tablename__ = "roles"
     
-    name = Column(String(100), unique=True, index=True, nullable=False)
-    description = Column(Text, nullable=True)
-    permissions = Column(Text, nullable=True)  # 以逗号分隔的字符串存储
+    name: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    permissions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # 以逗号分隔的字符串存储
     
     # 关联关系
-    users: List["User"] = relationship(
+    users: Mapped[list["User"]] = relationship(
         "User",
         secondary="user_roles",
         back_populates="roles",
@@ -52,7 +54,7 @@ class Role(Base):
         return f"<Role(id={self.id}, name={self.name})>"
     
     @property
-    def permission_list(self) -> List[str]:
+    def permission_list(self) -> list[str]:
         """获取权限列表。"""
         if not self.permissions:
             return []
