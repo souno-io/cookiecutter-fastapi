@@ -6,9 +6,8 @@
 
 import json
 from functools import lru_cache
-from typing import Any, List, Optional, Union
+from typing import Optional
 
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,28 +41,52 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # ===== CORS 设置 =====
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    # 使用字符串类型接收，避免 pydantic-settings 解析错误
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000"
     CORS_ALLOW_CREDENTIALS: bool = True
-    CORS_ALLOW_METHODS: List[str] = ["*"]
-    CORS_ALLOW_HEADERS: List[str] = ["*"]
+    CORS_ALLOW_METHODS: str = "*"
+    CORS_ALLOW_HEADERS: str = "*"
     
-    @field_validator("CORS_ORIGINS", "CORS_ALLOW_METHODS", "CORS_ALLOW_HEADERS", mode="before")
-    @classmethod
-    def parse_list_field(cls, v: Union[str, List[str]]) -> List[str]:
-        """解析列表字段，支持逗号分隔的字符串和 JSON 数组格式。"""
-        if isinstance(v, list):
-            return v
-        if isinstance(v, str):
-            v = v.strip()
-            # 尝试解析为 JSON 数组
-            if v.startswith("["):
-                try:
-                    return json.loads(v)
-                except json.JSONDecodeError:
-                    pass
-            # 按逗号分隔
-            return [item.strip() for item in v.split(",") if item.strip()]
-        return v
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """解析 CORS_ORIGINS 为列表。"""
+        if not self.CORS_ORIGINS:
+            return []
+        value = self.CORS_ORIGINS.strip()
+        # 支持 JSON 数组格式
+        if value.startswith("["):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                pass
+        # 按逗号分隔
+        return [item.strip() for item in value.split(",") if item.strip()]
+    
+    @property
+    def cors_allow_methods_list(self) -> list[str]:
+        """解析 CORS_ALLOW_METHODS 为列表。"""
+        if not self.CORS_ALLOW_METHODS:
+            return ["*"]
+        value = self.CORS_ALLOW_METHODS.strip()
+        if value.startswith("["):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                pass
+        return [item.strip() for item in value.split(",") if item.strip()]
+    
+    @property
+    def cors_allow_headers_list(self) -> list[str]:
+        """解析 CORS_ALLOW_HEADERS 为列表。"""
+        if not self.CORS_ALLOW_HEADERS:
+            return ["*"]
+        value = self.CORS_ALLOW_HEADERS.strip()
+        if value.startswith("["):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                pass
+        return [item.strip() for item in value.split(",") if item.strip()]
     
     # ===== 数据库设置 =====
     DATABASE_TYPE: str = "{{ cookiecutter.database_type }}"
