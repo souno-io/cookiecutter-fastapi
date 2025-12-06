@@ -4,10 +4,11 @@
 支持多环境配置和 .env 文件加载。
 """
 
+import json
 from functools import lru_cache
 from typing import Any, List, Optional, Union
 
-from pydantic import AnyHttpUrl, field_validator, PostgresDsn, MySQLDsn
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -46,14 +47,23 @@ class Settings(BaseSettings):
     CORS_ALLOW_METHODS: List[str] = ["*"]
     CORS_ALLOW_HEADERS: List[str] = ["*"]
     
-    @field_validator("CORS_ORIGINS", mode="before")
+    @field_validator("CORS_ORIGINS", "CORS_ALLOW_METHODS", "CORS_ALLOW_HEADERS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, list):
+    def parse_list_field(cls, v: Union[str, List[str]]) -> List[str]:
+        """解析列表字段，支持逗号分隔的字符串和 JSON 数组格式。"""
+        if isinstance(v, list):
             return v
-        raise ValueError(v)
+        if isinstance(v, str):
+            v = v.strip()
+            # 尝试解析为 JSON 数组
+            if v.startswith("["):
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    pass
+            # 按逗号分隔
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
     
     # ===== 数据库设置 =====
     DATABASE_TYPE: str = "{{ cookiecutter.database_type }}"
