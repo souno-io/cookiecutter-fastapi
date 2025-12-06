@@ -83,14 +83,28 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# 默认日志格式
+DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+
+def _get_log_format() -> str:
+    """获取有效的日志格式字符串。"""
+    log_format = settings.LOG_FORMAT
+    # 如果设置为 'json' 或其他无效格式，使用默认格式
+    if log_format.lower() in ("json", "structured") or "%" not in log_format:
+        return DEFAULT_LOG_FORMAT
+    return log_format
+
+
 def setup_logging() -> None:
     """配置应用程序日志。"""
     log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+    log_format = _get_log_format()
     
     # 配置根日志记录器
     logging.basicConfig(
         level=log_level,
-        format=settings.LOG_FORMAT,
+        format=log_format,
         handlers=[
             logging.StreamHandler(),
         ],
@@ -100,7 +114,7 @@ def setup_logging() -> None:
     if settings.LOG_FILE:
         file_handler = logging.FileHandler(settings.LOG_FILE)
         file_handler.setLevel(log_level)
-        file_handler.setFormatter(logging.Formatter(settings.LOG_FORMAT))
+        file_handler.setFormatter(logging.Formatter(log_format))
         logging.getLogger().addHandler(file_handler)
     
     # 减少第三方库的日志噪音

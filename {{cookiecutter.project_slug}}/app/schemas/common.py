@@ -60,6 +60,14 @@ class PaginatedResponse(BaseModel, Generic[DataT]):
         )
 
 
+class Response(BaseModel, Generic[DataT]):
+    """通用 API 响应模式。"""
+    
+    data: Optional[DataT] = None
+    message: str = "success"
+    success: bool = True
+
+
 class MessageResponse(BaseModel):
     """简单消息响应。"""
     
