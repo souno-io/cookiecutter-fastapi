@@ -1,5 +1,5 @@
 """
-Health check endpoint tests.
+健康检查端点测试。
 """
 
 import pytest
@@ -8,7 +8,7 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_health_check(client: AsyncClient):
-    """Test health check endpoint returns healthy status."""
+    """测试健康检查端点返回健康状态。"""
     response = await client.get("/api/v1/health")
     
     assert response.status_code == 200
@@ -20,7 +20,7 @@ async def test_health_check(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_readiness_check(client: AsyncClient):
-    """Test readiness check endpoint."""
+    """测试就绪检查端点。"""
     response = await client.get("/api/v1/health/ready")
     
     assert response.status_code == 200
@@ -29,7 +29,7 @@ async def test_readiness_check(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_liveness_check(client: AsyncClient):
-    """Test liveness check endpoint."""
+    """测试存活检查端点。"""
     response = await client.get("/api/v1/health/live")
     
     assert response.status_code == 200

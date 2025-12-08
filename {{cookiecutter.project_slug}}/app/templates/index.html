@@ -1,48 +1,67 @@
 {% raw %}{% extends "base.html" %}
 
-{% block title %}Home - {{ config.APP_NAME }}{% endblock %}
+{% block title %}首页 - {{ config.APP_NAME }}{% endblock %}
 
 {% block content %}
 <div class="bg-white shadow rounded-lg p-6">
     <h1 class="text-3xl font-bold text-gray-900 mb-4">
-        Welcome to {{ config.APP_NAME }}
+        欢迎使用 {{ config.APP_NAME }}
     </h1>
     
     <p class="text-gray-600 mb-6">
         {{ config.APP_DESCRIPTION }}
     </p>
     
+    <!-- 快速入口 -->
+    {% if current_user %}
+    <div class="mb-6 p-4 bg-green-50 rounded-lg">
+        <p class="text-green-800">
+            <span class="font-medium">您好，{{ current_user.full_name or current_user.email }}！</span>
+            <a href="/dashboard" class="ml-2 text-green-600 hover:underline">进入仪表盘 &rarr;</a>
+        </p>
+    </div>
+    {% else %}
+    <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+        <p class="text-blue-800">
+            <a href="/login" class="font-medium text-blue-600 hover:underline">登录</a>
+            或
+            <a href="/register" class="font-medium text-blue-600 hover:underline">注册</a>
+            以使用更多功能
+        </p>
+    </div>
+    {% endif %}
+    
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Feature Card 1 -->
+        <!-- 功能卡片 1 -->
         <div class="bg-blue-50 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-blue-900 mb-2">API Documentation</h3>
-            <p class="text-blue-700 mb-4">Explore our interactive API documentation.</p>
-            <a href="/docs" class="text-blue-600 hover:underline">View Docs &rarr;</a>
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">API 文档</h3>
+            <p class="text-blue-700 mb-4">探索我们的交互式 API 文档。</p>
+            <a href="/docs" class="text-blue-600 hover:underline">查看文档 &rarr;</a>
         </div>
         
-        <!-- Feature Card 2 -->
+        <!-- 功能卡片 2 -->
         <div class="bg-green-50 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-green-900 mb-2">Health Check</h3>
-            <p class="text-green-700 mb-4">Check the system health status.</p>
-            <a href="/api/v1/health" class="text-green-600 hover:underline">Check Status &rarr;</a>
+            <h3 class="text-lg font-semibold text-green-900 mb-2">健康检查</h3>
+            <p class="text-green-700 mb-4">查看系统健康状态。</p>
+            <a href="/api/v1/health" class="text-green-600 hover:underline">检查状态 &rarr;</a>
         </div>
         
-        <!-- Feature Card 3 -->
+        <!-- 功能卡片 3 -->
         <div class="bg-purple-50 rounded-lg p-6">
             <h3 class="text-lg font-semibold text-purple-900 mb-2">ReDoc</h3>
-            <p class="text-purple-700 mb-4">Alternative API documentation.</p>
-            <a href="/redoc" class="text-purple-600 hover:underline">View ReDoc &rarr;</a>
+            <p class="text-purple-700 mb-4">备用 API 文档。</p>
+            <a href="/redoc" class="text-purple-600 hover:underline">查看 ReDoc &rarr;</a>
         </div>
     </div>
     
     <div class="mt-8 p-4 bg-gray-50 rounded-lg">
-        <h3 class="font-semibold text-gray-900 mb-2">Quick Start</h3>
-        <pre class="bg-gray-800 text-green-400 p-4 rounded overflow-x-auto"><code># Login
+        <h3 class="font-semibold text-gray-900 mb-2">快速开始</h3>
+        <pre class="bg-gray-800 text-green-400 p-4 rounded overflow-x-auto"><code># 登录
 curl -X POST "{{ request.url.scheme }}://{{ request.url.netloc }}/api/v1/auth/login" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=admin@example.com&password=changeme123"
 
-# Access protected endpoint
+# 访问受保护的端点
 curl -X GET "{{ request.url.scheme }}://{{ request.url.netloc }}/api/v1/users" \
   -H "Authorization: Bearer YOUR_TOKEN"</code></pre>
     </div>

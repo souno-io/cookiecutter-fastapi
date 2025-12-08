@@ -673,6 +673,11 @@ alembic history
 alembic current
 ```
 
+# 初始化数据
+``` bash
+python scripts/init_db.py
+``` 
+
 ---
 
 ## 测试

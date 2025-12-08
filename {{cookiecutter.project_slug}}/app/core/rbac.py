@@ -126,13 +126,13 @@ class RBACManager:
     
     def get_role_permissions(self, role: Union[str, RoleType]) -> Set[str]:
         """
-        Get all permissions for a role including inherited permissions.
+        获取角色的所有权限（包括继承的权限）。
         
-        Args:
-            role: Role name or RoleType enum
+        参数：
+            role: 角色名称或 RoleType 枚举
             
-        Returns:
-            Set of permission strings
+        返回：
+            权限字符串集合
         """
         role_value = role.value if isinstance(role, RoleType) else role
         permissions = set(self._role_permissions.get(role_value, set()))
@@ -154,15 +154,15 @@ class RBACManager:
         require_all: bool = True,
     ) -> bool:
         """
-        Check if user has required permission(s).
+        检查用户是否拥有所需权限。
         
-        Args:
-            user_roles: List of user's role names
-            required_permissions: Required permission(s)
-            require_all: If True, user must have all permissions; if False, any one is sufficient
+        参数：
+            user_roles: 用户角色名称列表
+            required_permissions: 所需权限
+            require_all: 为 True 时需要所有权限；为 False 时任一权限即可
             
-        Returns:
-            True if permission check passes
+        返回：
+            权限检查通过返回 True
         """
         # 将权限规范化为字符串列表
         if isinstance(required_permissions, (str, Permission)):
@@ -191,12 +191,12 @@ class RBACManager:
         inherit_from: Optional[str] = None,
     ) -> None:
         """
-        Add a custom role with permissions.
+        添加自定义角色及其权限。
         
-        Args:
-            role_name: Name of the new role
-            permissions: Set of permissions for the role
-            inherit_from: Role to inherit permissions from
+        参数：
+            role_name: 新角色名称
+            permissions: 角色的权限集合
+            inherit_from: 要继承权限的角色
         """
         normalized_permissions = {
             p.value if isinstance(p, Permission) else p 
@@ -242,17 +242,17 @@ def require_permissions(
     require_all: bool = True,
 ) -> Callable:
     """
-    Decorator to require specific permissions for an endpoint.
+    要求端点具有特定权限的装饰器。
     
-    Usage:
+    用法：
         @router.get("/admin")
         @require_permissions([Permission.ADMIN_ACCESS])
         async def admin_endpoint(current_user: User = Depends(get_current_user)):
             ...
     
-    Args:
-        permissions: Required permission(s)
-        require_all: If True, all permissions required; if False, any one is sufficient
+    参数：
+        permissions: 所需权限
+        require_all: 为 True 时需要所有权限；为 False 时任一即可
     """
     def decorator(func: Callable) -> Callable:
         @wraps(func)
@@ -292,9 +292,9 @@ def require_permissions(
 
 class PermissionChecker:
     """
-    Dependency class for checking permissions in FastAPI routes.
+    用于 FastAPI 路由权限检查的依赖类。
     
-    Usage:
+    用法：
         @router.get("/admin")
         async def admin_endpoint(
             _: bool = Depends(PermissionChecker([Permission.ADMIN_ACCESS])),

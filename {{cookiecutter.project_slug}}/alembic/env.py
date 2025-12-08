@@ -1,5 +1,5 @@
 """
-Alembic environment configuration for database migrations.
+Alembic 数据库迁移环境配置。
 """
 
 import sys
@@ -17,34 +17,34 @@ from sqlalchemy import create_engine
 
 from alembic import context
 
-# Import app configuration and models
+# 导入应用配置和模型
 from app.core.config import settings
 from app.db.base import Base
 
-# Import all models to register them with Base
+# 导入所有模型以便在 Base 中注册
 from app.models import user, role, audit_log  # noqa: F401
 
 
-# this is the Alembic Config object
+# Alembic 配置对象
 config = context.config
 
-# Set sqlalchemy.url from app settings
+# 从应用配置设置 sqlalchemy.url
 config.set_main_option("sqlalchemy.url", settings.SYNC_DATABASE_URL)
 
-# Interpret the config file for Python logging
+# 配置 Python 日志
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Target metadata for autogenerate support
+# 自动生成支持的目标元数据
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
     """
-    Run migrations in 'offline' mode.
+    在 'offline' 模式下运行迁移。
 
-    This configures the context with just a URL and not an Engine,
-    though an Engine is acceptable here as well.
+    此配置只使用 URL 而不是 Engine 来配置上下文，
+    当然使用 Engine 也是可以的。
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -62,9 +62,9 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """
-    Run migrations in 'online' mode.
+    在 'online' 模式下运行迁移。
 
-    Creates an Engine and associates a connection with the context.
+    创建 Engine 并将连接与上下文关联。
     """
     connectable = create_engine(
         config.get_main_option("sqlalchemy.url"),

@@ -22,16 +22,16 @@ router = APIRouter()
 @router.get(
     "",
     response_model=PaginatedResponse[UserResponse],
-    summary="List Users",
-    description="Get a paginated list of users",
+    summary="用户列表",
+    description="获取分页的用户列表",
     dependencies=[Depends(RoleChecker(["admin", "super_admin"]))],
 )
 async def list_users(
     db: AsyncSession = Depends(get_db),
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Search by email or name"),
-    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
+    search: Optional[str] = Query(None, description="按邮箱或姓名搜索"),
+    is_active: Optional[bool] = Query(None, description="按激活状态筛选"),
     current_user: User = Depends(get_current_active_user),
 ) -> PaginatedResponse[UserResponse]:
     """
@@ -82,8 +82,8 @@ async def list_users(
 @router.get(
     "/{user_id}",
     response_model=UserResponse,
-    summary="Get User",
-    description="Get a specific user by ID",
+    summary="获取用户",
+    description="根据 ID 获取特定用户",
 )
 async def get_user(
     user_id: int,
@@ -101,7 +101,7 @@ async def get_user(
         if not current_user.has_any_role(["admin"]):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions",
+                detail="权限不足",
             )
     
     result = await db.execute(select(User).where(User.id == user_id))
@@ -110,7 +110,7 @@ async def get_user(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail="用户不存在",
         )
     
     return UserResponse.model_validate(user)
@@ -120,8 +120,8 @@ async def get_user(
     "",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create User",
-    description="Create a new user (admin only)",
+    summary="创建用户",
+    description="创建新用户（仅管理员）",
 )
 async def create_user(
     user_data: UserCreate,
@@ -138,7 +138,7 @@ async def create_user(
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
+            detail="邮箱已被注册",
         )
     
     # 创建用户
@@ -169,8 +169,8 @@ async def create_user(
 @router.put(
     "/{user_id}",
     response_model=UserResponse,
-    summary="Update User",
-    description="Update an existing user",
+    summary="更新用户",
+    description="更新现有用户",
 )
 async def update_user(
     user_id: int,
@@ -191,7 +191,7 @@ async def update_user(
     if not is_self and not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
+            detail="权限不足",
         )
     
     # 获取用户
@@ -201,7 +201,7 @@ async def update_user(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail="用户不存在",
         )
     
     # 更新字段
@@ -237,8 +237,8 @@ async def update_user(
 @router.delete(
     "/{user_id}",
     response_model=MessageResponse,
-    summary="Delete User",
-    description="Delete a user (superuser only)",
+    summary="删除用户",
+    description="删除用户（仅超级用户）",
 )
 async def delete_user(
     user_id: int,
@@ -254,7 +254,7 @@ async def delete_user(
     if current_user.id == user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete yourself",
+            detail="不能删除自己",
         )
     
     result = await db.execute(select(User).where(User.id == user_id))
@@ -263,9 +263,9 @@ async def delete_user(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail="用户不存在",
         )
     
     await db.delete(user)
     
-    return MessageResponse(message="User deleted successfully")
+    return MessageResponse(message="用户删除成功")

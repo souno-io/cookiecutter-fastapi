@@ -1,47 +1,151 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ cookiecutter.project_name }}{% endblock %}</title>
+    <title>{% raw %}{% block title %}{% endraw %}{{ cookiecutter.project_name }}{% raw %}{% endblock %}{% endraw %}</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    {% block head %}{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    {% raw %}{% block head %}{% endblock %}{% endraw %}
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-lg" x-data="{ mobileMenuOpen: false }">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="/" class="text-xl font-bold text-gray-800">
+                        <a href="/" class="text-xl font-bold text-blue-600">
                             {{ cookiecutter.project_name }}
                         </a>
                     </div>
+                    <!-- 主导航 -->
+                    <div class="hidden md:ml-6 md:flex md:space-x-4">
+                        {% raw %}{% block nav_main %}{% endraw %}
+                        <a href="/" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">首页</a>
+                        <a href="/docs" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">API 文档</a>
+                        {% raw %}{% endblock %}{% endraw %}
+                    </div>
                 </div>
+                
+                <!-- 右侧导航 -->
                 <div class="flex items-center">
-                    {% block nav_right %}
-                    <a href="/docs" class="text-gray-600 hover:text-gray-900 px-3 py-2">API Docs</a>
-                    {% endblock %}
+                    {% raw %}{% block nav_right %}
+                    <!-- 未登录状态 -->
+                    {% if not current_user %}
+                    <a href="/login" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">登录</a>
+                    <a href="/register" class="ml-2 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">注册</a>
+                    {% else %}
+                    <!-- 已登录状态 -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                            <span>{{ current_user.full_name or current_user.email }}</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">仪表盘</a>
+                            {% if current_user.is_superuser or current_user.has_any_role(['admin', 'super_admin']) %}
+                            <a href="/admin/users" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">用户管理</a>
+                            <a href="/admin/roles" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">角色管理</a>
+                            {% endif %}
+                            <hr class="my-1">
+                            <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">退出登录</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endblock %}{% endraw %}
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {% block content %}{% endblock %}
+    {% raw %}<!-- 消息提示 -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 mt-4">
+        {% for message in messages %}
+        <div class="mb-2 p-4 rounded-md {% if message.type == 'error' %}bg-red-100 text-red-700{% elif message.type == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+            {{ message.text }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}{% endraw %}
+
+    <!-- 主要内容 -->
+    <main class="flex-1 max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 w-full">
+        {% raw %}{% block content %}{% endblock %}{% endraw %}
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t mt-auto">
+    <!-- 页脚 -->
+    <footer class="bg-white border-t">
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <p class="text-center text-gray-500 text-sm">
-                &copy; {{ "{{ year }}" }} {{ cookiecutter.project_name }}. All rights reserved.
+                &copy; {% raw %}{{ year }}{% endraw %} {{ cookiecutter.project_name }}. 版权所有。
             </p>
         </div>
     </footer>
 
-    {% block scripts %}{% endblock %}
+    <!-- 通用 JavaScript -->
+    <script>
+        // 通用 API 请求工具
+        const api = {
+            token: localStorage.getItem('access_token'),
+            
+            async request(url, options = {}) {
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...options.headers,
+                };
+                
+                if (this.token) {
+                    headers['Authorization'] = `Bearer ${this.token}`;
+                }
+                
+                const response = await fetch(url, { ...options, headers });
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('access_token');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                return response;
+            },
+            
+            async get(url) {
+                return this.request(url);
+            },
+            
+            async post(url, data) {
+                return this.request(url, {
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                });
+            },
+            
+            async put(url, data) {
+                return this.request(url, {
+                    method: 'PUT',
+                    body: JSON.stringify(data),
+                });
+            },
+            
+            async delete(url) {
+                return this.request(url, { method: 'DELETE' });
+            }
+        };
+        
+        // 消息提示
+        function showMessage(text, type = 'info') {
+            const container = document.createElement('div');
+            container.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${type === 'error' ? 'bg-red-100 text-red-700' : type === 'success' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`;
+            container.textContent = text;
+            document.body.appendChild(container);
+            
+            setTimeout(() => container.remove(), 3000);
+        }
+    </script>
+    {% raw %}{% block scripts %}{% endblock %}{% endraw %}
 </body>
 </html>

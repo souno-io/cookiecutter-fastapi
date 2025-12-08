@@ -16,8 +16,8 @@ router = APIRouter()
 @router.get(
     "",
     response_model=HealthResponse,
-    summary="Health Check",
-    description="Check the health status of the application",
+    summary="健康检查",
+    description="检查应用程序的健康状态",
 )
 async def health_check(
     db: AsyncSession = Depends(get_db),
@@ -62,8 +62,8 @@ async def health_check(
 
 @router.get(
     "/ready",
-    summary="Readiness Check",
-    description="Check if the application is ready to receive traffic",
+    summary="就绪检查",
+    description="检查应用程序是否已准备好接收流量",
 )
 async def readiness_check() -> dict:
     """Kubernetes 就绪探针端点。"""
@@ -72,8 +72,8 @@ async def readiness_check() -> dict:
 
 @router.get(
     "/live",
-    summary="Liveness Check",
-    description="Check if the application is alive",
+    summary="存活检查",
+    description="检查应用程序是否存活",
 )
 async def liveness_check() -> dict:
     """Kubernetes 存活探针端点。"""

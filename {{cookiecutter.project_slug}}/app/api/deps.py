@@ -46,7 +46,7 @@ async def get_current_user(
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="无法验证凭据",
         headers={"WWW-Authenticate": "Bearer"},
     )
     
@@ -62,7 +62,7 @@ async def get_current_user(
     if token_data.token_type != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token type",
+            detail="无效的令牌类型",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -96,7 +96,7 @@ async def get_current_active_user(
     if not current_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user",
+            detail="用户未激活",
         )
     return current_user
 
@@ -119,7 +119,7 @@ async def get_current_superuser(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient privileges",
+            detail="权限不足",
         )
     return current_user
 
@@ -175,6 +175,6 @@ class RoleChecker:
         if not current_user.has_any_role(self.allowed_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient role privileges",
+                detail="角色权限不足",
             )
         return True

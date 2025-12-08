@@ -89,7 +89,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if is_limited:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Rate limit exceeded. Please try again later.",
+                detail="请求过于频繁，请稍后再试。",
                 headers={
                     "Retry-After": str(self.window),
                     "X-RateLimit-Limit": str(self.requests),
@@ -168,7 +168,7 @@ class RedisRateLimitMiddleware(BaseHTTPMiddleware):
             ttl = await self.redis.ttl(key)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Rate limit exceeded. Please try again later.",
+                detail="请求过于频繁，请稍后再试。",
                 headers={
                     "Retry-After": str(ttl),
                     "X-RateLimit-Limit": str(self.requests),

@@ -29,9 +29,9 @@ class TimestampMixin(BaseModel):
 
 class PaginatedResponse(BaseModel, Generic[DataT]):
     """
-    Generic paginated response schema.
+    通用分页响应模式。
     
-    Usage:
+    用法：
         PaginatedResponse[UserResponse]
     """
     

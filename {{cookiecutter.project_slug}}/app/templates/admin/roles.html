@@ -1,0 +1,274 @@
+{% raw %}{% extends "base.html" %}
+
+{% block title %}角色管理 - {{ config.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="roleManagement()">
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">角色管理</h1>
+            <p class="mt-1 text-sm text-gray-500">管理系统中的角色和权限</p>
+        </div>
+        <button @click="openCreateModal()" 
+                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            添加角色
+        </button>
+    </div>
+
+    <!-- 角色列表 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <template x-for="role in roles" :key="role.id">
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900" x-text="role.name"></h3>
+                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"
+                              x-text="(role.permissions || []).length + ' 个权限'"></span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4" x-text="role.description || '无描述'"></p>
+                    
+                    <!-- 权限列表 -->
+                    <div class="mb-4">
+                        <h4 class="text-xs font-medium text-gray-500 uppercase mb-2">权限列表</h4>
+                        <div class="flex flex-wrap gap-1">
+                            <template x-for="perm in (role.permissions || []).slice(0, 5)" :key="perm">
+                                <span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded" x-text="perm"></span>
+                            </template>
+                            <span x-show="(role.permissions || []).length > 5" 
+                                  class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded"
+                                  x-text="'+' + ((role.permissions || []).length - 5) + ' 更多'"></span>
+                            <span x-show="!role.permissions || role.permissions.length === 0" 
+                                  class="text-xs text-gray-400">暂无权限</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-3 bg-gray-50 flex justify-end space-x-3">
+                    <button @click="openEditModal(role)" class="text-sm text-blue-600 hover:text-blue-900">
+                        编辑
+                    </button>
+                    <button @click="deleteRole(role)" class="text-sm text-red-600 hover:text-red-900">
+                        删除
+                    </button>
+                </div>
+            </div>
+        </template>
+        
+        <div x-show="loading" class="bg-white shadow rounded-lg p-6 flex items-center justify-center">
+            <span class="text-gray-500">加载中...</span>
+        </div>
+        
+        <div x-show="!loading && roles.length === 0" class="bg-white shadow rounded-lg p-6 flex items-center justify-center col-span-full">
+            <span class="text-gray-500">暂无角色数据</span>
+        </div>
+    </div>
+
+    <!-- 权限说明 -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">可用权限说明</h2>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 用户权限 -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-900 mb-2">用户管理</h3>
+                    <ul class="space-y-1 text-sm text-gray-600">
+                        <li><code class="bg-gray-200 px-1 rounded">user:read</code> - 查看用户</li>
+                        <li><code class="bg-gray-200 px-1 rounded">user:create</code> - 创建用户</li>
+                        <li><code class="bg-gray-200 px-1 rounded">user:update</code> - 更新用户</li>
+                        <li><code class="bg-gray-200 px-1 rounded">user:delete</code> - 删除用户</li>
+                        <li><code class="bg-gray-200 px-1 rounded">user:list</code> - 用户列表</li>
+                    </ul>
+                </div>
+                
+                <!-- 角色权限 -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-900 mb-2">角色管理</h3>
+                    <ul class="space-y-1 text-sm text-gray-600">
+                        <li><code class="bg-gray-200 px-1 rounded">role:read</code> - 查看角色</li>
+                        <li><code class="bg-gray-200 px-1 rounded">role:create</code> - 创建角色</li>
+                        <li><code class="bg-gray-200 px-1 rounded">role:update</code> - 更新角色</li>
+                        <li><code class="bg-gray-200 px-1 rounded">role:delete</code> - 删除角色</li>
+                        <li><code class="bg-gray-200 px-1 rounded">role:assign</code> - 分配角色</li>
+                    </ul>
+                </div>
+                
+                <!-- 系统权限 -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-900 mb-2">系统管理</h3>
+                    <ul class="space-y-1 text-sm text-gray-600">
+                        <li><code class="bg-gray-200 px-1 rounded">admin:access</code> - 管理后台访问</li>
+                        <li><code class="bg-gray-200 px-1 rounded">admin:settings</code> - 系统设置</li>
+                        <li><code class="bg-gray-200 px-1 rounded">system:manage</code> - 系统管理</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建/编辑角色弹窗 -->
+    <div x-show="showModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeModal()"></div>
+            <div class="relative bg-white rounded-lg max-w-2xl w-full p-6 shadow-xl max-h-screen overflow-y-auto">
+                <h3 class="text-lg font-medium text-gray-900 mb-4" x-text="editingRole ? '编辑角色' : '添加角色'"></h3>
+                <form @submit.prevent="saveRole()">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">角色名称 <span class="text-red-500">*</span></label>
+                            <input type="text" x-model="form.name" required
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="例如：admin, moderator">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">描述</label>
+                            <textarea x-model="form.description" rows="2"
+                                      class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="角色描述..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">权限</label>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto bg-gray-50 p-4 rounded-lg">
+                                <template x-for="perm in availablePermissions" :key="perm">
+                                    <label class="flex items-center space-x-2 p-2 bg-white rounded border border-gray-200 hover:border-blue-300 cursor-pointer">
+                                        <input type="checkbox" :value="perm" x-model="form.permissions"
+                                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                        <span class="text-sm text-gray-700" x-text="perm"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button type="button" @click="closeModal()"
+                                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            取消
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">
+                            保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function roleManagement() {
+    return {
+        roles: [],
+        loading: true,
+        showModal: false,
+        editingRole: null,
+        form: {
+            name: '',
+            description: '',
+            permissions: []
+        },
+        availablePermissions: [
+            'user:read', 'user:create', 'user:update', 'user:delete', 'user:list',
+            'role:read', 'role:create', 'role:update', 'role:delete', 'role:assign',
+            'content:read', 'content:create', 'content:update', 'content:delete',
+            'admin:access', 'admin:settings', 'system:manage'
+        ],
+        
+        async init() {
+            await this.loadRoles();
+        },
+        
+        async loadRoles() {
+            this.loading = true;
+            try {
+                const response = await api.get('/api/v1/roles?page_size=100');
+                if (response.ok) {
+                    const data = await response.json();
+                    this.roles = data.items || [];
+                }
+            } catch (error) {
+                showMessage('加载角色列表失败', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        openCreateModal() {
+            this.editingRole = null;
+            this.form = {
+                name: '',
+                description: '',
+                permissions: []
+            };
+            this.showModal = true;
+        },
+        
+        openEditModal(role) {
+            this.editingRole = role;
+            this.form = {
+                name: role.name,
+                description: role.description || '',
+                permissions: role.permissions || []
+            };
+            this.showModal = true;
+        },
+        
+        closeModal() {
+            this.showModal = false;
+            this.editingRole = null;
+        },
+        
+        async saveRole() {
+            try {
+                let response;
+                const roleData = {
+                    name: this.form.name,
+                    description: this.form.description,
+                    permissions: this.form.permissions
+                };
+                
+                if (this.editingRole) {
+                    response = await api.put(`/api/v1/roles/${this.editingRole.id}`, roleData);
+                } else {
+                    response = await api.post('/api/v1/roles', roleData);
+                }
+                
+                if (response.ok) {
+                    showMessage(this.editingRole ? '角色已更新' : '角色已创建', 'success');
+                    this.closeModal();
+                    this.loadRoles();
+                } else {
+                    const data = await response.json();
+                    showMessage(data.detail || '操作失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        },
+        
+        async deleteRole(role) {
+            if (!confirm(`确定要删除角色 "${role.name}" 吗？此操作不可撤销。`)) return;
+            
+            try {
+                const response = await api.delete(`/api/v1/roles/${role.id}`);
+                if (response.ok) {
+                    showMessage('角色已删除', 'success');
+                    this.loadRoles();
+                } else {
+                    const data = await response.json();
+                    showMessage(data.detail || '删除失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        }
+    };
+}
+</script>
+{% endblock %}{% endraw %}

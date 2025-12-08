@@ -21,8 +21,8 @@ router = APIRouter()
 @router.get(
     "",
     response_model=PaginatedResponse[RoleResponse],
-    summary="List Roles",
-    description="Get a paginated list of roles",
+    summary="角色列表",
+    description="获取分页的角色列表",
     dependencies=[Depends(RoleChecker(["admin", "super_admin"]))],
 )
 async def list_roles(
@@ -65,8 +65,8 @@ async def list_roles(
 @router.get(
     "/{role_id}",
     response_model=RoleResponse,
-    summary="Get Role",
-    description="Get a specific role by ID",
+    summary="获取角色",
+    description="根据 ID 获取特定角色",
     dependencies=[Depends(RoleChecker(["admin", "super_admin"]))],
 )
 async def get_role(
@@ -81,7 +81,7 @@ async def get_role(
     if not role:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Role not found",
+            detail="角色不存在",
         )
     
     return RoleResponse.model_validate(role)
@@ -91,8 +91,8 @@ async def get_role(
     "",
     response_model=RoleResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create Role",
-    description="Create a new role (superuser only)",
+    summary="创建角色",
+    description="创建新角色（仅超级用户）",
 )
 async def create_role(
     role_data: RoleCreate,
@@ -109,7 +109,7 @@ async def create_role(
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Role name already exists",
+            detail="角色名称已存在",
         )
     
     # 创建角色
@@ -133,8 +133,8 @@ async def create_role(
 @router.put(
     "/{role_id}",
     response_model=RoleResponse,
-    summary="Update Role",
-    description="Update an existing role (superuser only)",
+    summary="更新角色",
+    description="更新现有角色（仅超级用户）",
 )
 async def update_role(
     role_id: int,
@@ -153,7 +153,7 @@ async def update_role(
     if not role:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Role not found",
+            detail="角色不存在",
         )
     
     update_data = role_data.model_dump(exclude_unset=True)
@@ -166,7 +166,7 @@ async def update_role(
         if result.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Role name already exists",
+                detail="角色名称已存在",
             )
     
     # 处理权限
@@ -190,8 +190,8 @@ async def update_role(
 @router.delete(
     "/{role_id}",
     response_model=MessageResponse,
-    summary="Delete Role",
-    description="Delete a role (superuser only)",
+    summary="删除角色",
+    description="删除角色（仅超级用户）",
 )
 async def delete_role(
     role_id: int,
@@ -209,19 +209,19 @@ async def delete_role(
     if not role:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Role not found",
+            detail="角色不存在",
         )
     
     await db.delete(role)
     
-    return MessageResponse(message="Role deleted successfully")
+    return MessageResponse(message="角色删除成功")
 
 
 @router.post(
     "/assign",
     response_model=MessageResponse,
-    summary="Assign Roles to User",
-    description="Assign roles to a user (superuser only)",
+    summary="为用户分配角色",
+    description="为用户分配角色（仅超级用户）",
 )
 async def assign_roles(
     data: RoleAssign,
@@ -240,7 +240,7 @@ async def assign_roles(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail="用户不存在",
         )
     
     # 获取角色
@@ -250,11 +250,11 @@ async def assign_roles(
     if len(roles) != len(data.role_ids):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Some roles not found",
+            detail="部分角色不存在",
         )
     
     # 分配角色
     user.roles = list(roles)
     db.add(user)
     
-    return MessageResponse(message="Roles assigned successfully")
+    return MessageResponse(message="角色分配成功")

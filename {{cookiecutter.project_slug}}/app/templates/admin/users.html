@@ -1,0 +1,434 @@
+{% raw %}{% extends "base.html" %}
+
+{% block title %}用户管理 - {{ config.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="userManagement()">
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">用户管理</h1>
+            <p class="mt-1 text-sm text-gray-500">管理系统中的所有用户账户</p>
+        </div>
+        <button @click="openCreateModal()" 
+                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            添加用户
+        </button>
+    </div>
+
+    <!-- 搜索和筛选 -->
+    <div class="bg-white shadow rounded-lg p-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            <div class="flex-1 max-w-lg">
+                <div class="relative">
+                    <input type="text" x-model="searchQuery" @input.debounce.300ms="loadUsers()"
+                           placeholder="搜索邮箱或姓名..."
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <select x-model="filterActive" @change="loadUsers()"
+                        class="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">全部状态</option>
+                    <option value="true">已激活</option>
+                    <option value="false">未激活</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户列表 -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">注册时间</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <template x-for="user in users" :key="user.id">
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <template x-if="user.avatar">
+                                        <img :src="user.avatar" class="h-10 w-10 rounded-full">
+                                    </template>
+                                    <template x-if="!user.avatar">
+                                        <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold"
+                                             x-text="(user.full_name || user.email).charAt(0).toUpperCase()"></div>
+                                    </template>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900" x-text="user.full_name || '未设置'"></div>
+                                    <div class="text-sm text-gray-500" x-text="user.email"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <template x-if="user.is_superuser">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                    超级管理员
+                                </span>
+                            </template>
+                            <template x-if="!user.is_superuser && user.roles && user.roles.length > 0">
+                                <div class="flex flex-wrap gap-1">
+                                    <template x-for="role in user.roles" :key="role.id">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800" x-text="role.name"></span>
+                                    </template>
+                                </div>
+                            </template>
+                            <template x-if="!user.is_superuser && (!user.roles || user.roles.length === 0)">
+                                <span class="text-sm text-gray-500">无角色</span>
+                            </template>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span :class="user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                <span x-text="user.is_active ? '已激活' : '未激活'"></span>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(user.created_at)"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button @click="openEditModal(user)" class="text-blue-600 hover:text-blue-900 mr-3">编辑</button>
+                            <button @click="openRoleModal(user)" class="text-green-600 hover:text-green-900 mr-3">角色</button>
+                            <button @click="deleteUser(user)" class="text-red-600 hover:text-red-900"
+                                    x-show="user.id !== {{ current_user.id }}">删除</button>
+                        </td>
+                    </tr>
+                </template>
+                <tr x-show="loading">
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">加载中...</td>
+                </tr>
+                <tr x-show="!loading && users.length === 0">
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">暂无用户数据</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- 分页 -->
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
+            <div class="flex-1 flex justify-between sm:hidden">
+                <button @click="prevPage()" :disabled="page === 1"
+                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                    上一页
+                </button>
+                <button @click="nextPage()" :disabled="page >= totalPages"
+                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                    下一页
+                </button>
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        显示第 <span class="font-medium" x-text="(page - 1) * pageSize + 1"></span> 到 
+                        <span class="font-medium" x-text="Math.min(page * pageSize, total)"></span> 条，
+                        共 <span class="font-medium" x-text="total"></span> 条
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                        <button @click="prevPage()" :disabled="page === 1"
+                                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                            <span x-text="page"></span> / <span x-text="totalPages"></span>
+                        </span>
+                        <button @click="nextPage()" :disabled="page >= totalPages"
+                                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建/编辑用户弹窗 -->
+    <div x-show="showModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeModal()"></div>
+            <div class="relative bg-white rounded-lg max-w-lg w-full p-6 shadow-xl">
+                <h3 class="text-lg font-medium text-gray-900 mb-4" x-text="editingUser ? '编辑用户' : '添加用户'"></h3>
+                <form @submit.prevent="saveUser()">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">邮箱 <span class="text-red-500">*</span></label>
+                            <input type="email" x-model="form.email" required :disabled="editingUser"
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">姓名</label>
+                            <input type="text" x-model="form.full_name"
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div x-show="!editingUser">
+                            <label class="block text-sm font-medium text-gray-700">密码 <span class="text-red-500">*</span></label>
+                            <input type="password" x-model="form.password" :required="!editingUser"
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" x-model="form.is_active" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">激活账户</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" x-model="form.is_superuser" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">超级管理员</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button type="button" @click="closeModal()"
+                                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            取消
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">
+                            保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色分配弹窗 -->
+    <div x-show="showRoleModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showRoleModal = false"></div>
+            <div class="relative bg-white rounded-lg max-w-lg w-full p-6 shadow-xl">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">分配角色</h3>
+                <p class="text-sm text-gray-500 mb-4">为用户 <span class="font-medium" x-text="roleUser?.email"></span> 分配角色</p>
+                <div class="space-y-2 max-h-64 overflow-y-auto">
+                    <template x-for="role in allRoles" :key="role.id">
+                        <label class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <input type="checkbox" :value="role.id" x-model="selectedRoleIds"
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <div class="ml-3">
+                                <span class="text-sm font-medium text-gray-900" x-text="role.name"></span>
+                                <p class="text-xs text-gray-500" x-text="role.description || '无描述'"></p>
+                            </div>
+                        </label>
+                    </template>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" @click="showRoleModal = false"
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button type="button" @click="saveRoles()"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function userManagement() {
+    return {
+        users: [],
+        loading: true,
+        page: 1,
+        pageSize: 20,
+        total: 0,
+        searchQuery: '',
+        filterActive: '',
+        showModal: false,
+        showRoleModal: false,
+        editingUser: null,
+        roleUser: null,
+        allRoles: [],
+        selectedRoleIds: [],
+        form: {
+            email: '',
+            full_name: '',
+            password: '',
+            is_active: true,
+            is_superuser: false
+        },
+        
+        get totalPages() {
+            return Math.ceil(this.total / this.pageSize);
+        },
+        
+        async init() {
+            await this.loadUsers();
+            await this.loadRoles();
+        },
+        
+        async loadUsers() {
+            this.loading = true;
+            try {
+                let url = `/api/v1/users?page=${this.page}&page_size=${this.pageSize}`;
+                if (this.searchQuery) url += `&search=${encodeURIComponent(this.searchQuery)}`;
+                if (this.filterActive) url += `&is_active=${this.filterActive}`;
+                
+                const response = await api.get(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.users = data.items || [];
+                    this.total = data.total || 0;
+                }
+            } catch (error) {
+                showMessage('加载用户列表失败', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async loadRoles() {
+            try {
+                const response = await api.get('/api/v1/roles?page_size=100');
+                if (response.ok) {
+                    const data = await response.json();
+                    this.allRoles = data.items || [];
+                }
+            } catch (error) {
+                console.error('加载角色失败', error);
+            }
+        },
+        
+        prevPage() {
+            if (this.page > 1) {
+                this.page--;
+                this.loadUsers();
+            }
+        },
+        
+        nextPage() {
+            if (this.page < this.totalPages) {
+                this.page++;
+                this.loadUsers();
+            }
+        },
+        
+        openCreateModal() {
+            this.editingUser = null;
+            this.form = {
+                email: '',
+                full_name: '',
+                password: '',
+                is_active: true,
+                is_superuser: false
+            };
+            this.showModal = true;
+        },
+        
+        openEditModal(user) {
+            this.editingUser = user;
+            this.form = {
+                email: user.email,
+                full_name: user.full_name || '',
+                password: '',
+                is_active: user.is_active,
+                is_superuser: user.is_superuser
+            };
+            this.showModal = true;
+        },
+        
+        closeModal() {
+            this.showModal = false;
+            this.editingUser = null;
+        },
+        
+        async saveUser() {
+            try {
+                let response;
+                if (this.editingUser) {
+                    const updateData = {
+                        full_name: this.form.full_name,
+                        is_active: this.form.is_active,
+                        is_superuser: this.form.is_superuser
+                    };
+                    response = await api.put(`/api/v1/users/${this.editingUser.id}`, updateData);
+                } else {
+                    response = await api.post('/api/v1/users', this.form);
+                }
+                
+                if (response.ok) {
+                    showMessage(this.editingUser ? '用户已更新' : '用户已创建', 'success');
+                    this.closeModal();
+                    this.loadUsers();
+                } else {
+                    const data = await response.json();
+                    showMessage(data.detail || '操作失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        },
+        
+        openRoleModal(user) {
+            this.roleUser = user;
+            this.selectedRoleIds = (user.roles || []).map(r => r.id);
+            this.showRoleModal = true;
+        },
+        
+        async saveRoles() {
+            try {
+                const response = await api.post('/api/v1/roles/assign', {
+                    user_id: this.roleUser.id,
+                    role_ids: this.selectedRoleIds
+                });
+                
+                if (response.ok) {
+                    showMessage('角色已分配', 'success');
+                    this.showRoleModal = false;
+                    this.loadUsers();
+                } else {
+                    const data = await response.json();
+                    showMessage(data.detail || '分配失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        },
+        
+        async deleteUser(user) {
+            if (!confirm(`确定要删除用户 ${user.email} 吗？此操作不可撤销。`)) return;
+            
+            try {
+                const response = await api.delete(`/api/v1/users/${user.id}`);
+                if (response.ok) {
+                    showMessage('用户已删除', 'success');
+                    this.loadUsers();
+                } else {
+                    const data = await response.json();
+                    showMessage(data.detail || '删除失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+            }
+        },
+        
+        formatDate(dateStr) {
+            if (!dateStr) return '-';
+            return new Date(dateStr).toLocaleDateString('zh-CN');
+        }
+    };
+}
+</script>
+{% endblock %}{% endraw %}

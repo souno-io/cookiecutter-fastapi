@@ -1,7 +1,7 @@
 """
-Pre-generation hook for cookiecutter.
+cookiecutter 生成前钩子。
 
-Validates project configuration before generation.
+在项目生成前验证项目配置。
 """
 
 import re
@@ -9,7 +9,7 @@ import sys
 
 
 def validate_project_slug(slug: str) -> bool:
-    """Validate project slug is a valid Python identifier."""
+    """验证项目 slug 是否为有效的 Python 标识符。"""
     pattern = r'^[a-z][a-z0-9_]*$'
     return bool(re.match(pattern, slug))
 

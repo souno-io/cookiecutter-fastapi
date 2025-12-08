@@ -36,9 +36,9 @@ class WebSocketHandler:
     
     def on(self, message_type: str):
         """
-        Decorator to register a handler for a specific message type.
+        注册消息类型处理器的装饰器。
         
-        Usage:
+        用法：
             handler = WebSocketHandler()
             
             @handler.on("chat")
@@ -58,9 +58,9 @@ class WebSocketHandler:
         user_id: Optional[str] = None,
     ) -> Optional[Any]:
         """
-        Route and handle incoming messages.
+        路由并处理传入的消息。
         
-        Expected message format:
+        预期消息格式：
         {
             "type": "message_type",
             "data": {...}
@@ -87,11 +87,11 @@ class WebSocketHandler:
             }
 
 
-# Create default handler
+# 创建默认处理器
 ws_handler = WebSocketHandler()
 
 
-# Register default handlers
+# 注册默认处理器
 @ws_handler.on("ping")
 async def handle_ping(websocket, data, connection_id, user_id):
     """处理 ping 消息。"""
@@ -176,11 +176,11 @@ async def websocket_endpoint(
     token: Optional[str] = Query(None),
 ):
     """
-    Main WebSocket endpoint.
+    主 WebSocket 端点。
     
-    Connection URL: ws://host/ws?token=<jwt_token>
+    连接 URL: ws://host/ws?token=<jwt_token>
     
-    Message format (JSON):
+    消息格式 (JSON):
     {
         "type": "message_type",
         "data": {...}
@@ -244,9 +244,9 @@ async def notification_websocket(
     token: str = Query(...),
 ):
     """
-    Notification-specific WebSocket endpoint.
+    通知专用 WebSocket 端点。
     
-    Requires authentication.
+    需要身份验证。
     """
     # 验证令牌
     token_data = security_manager.decode_token(token)

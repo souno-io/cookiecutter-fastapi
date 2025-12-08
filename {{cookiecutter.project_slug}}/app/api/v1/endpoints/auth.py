@@ -5,7 +5,7 @@
 from datetime import timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -30,8 +30,8 @@ router = APIRouter()
 @router.post(
     "/login",
     response_model=Token,
-    summary="User Login",
-    description="Authenticate user and return JWT tokens",
+    summary="用户登录",
+    description="验证用户并返回 JWT 令牌",
 )
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -51,7 +51,7 @@ async def login(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="邮箱或密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -59,7 +59,7 @@ async def login(
     if not security_manager.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="邮箱或密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -67,7 +67,7 @@ async def login(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user",
+            detail="用户未激活",
         )
     
     # 创建令牌
@@ -84,17 +84,19 @@ async def login(
 @router.post(
     "/login/json",
     response_model=Token,
-    summary="User Login (JSON)",
-    description="Authenticate user with JSON body and return JWT tokens",
+    summary="用户登录 (JSON)",
+    description="使用 JSON 请求体验证用户并返回 JWT 令牌",
 )
 async def login_json(
     login_data: LoginRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> Token:
     """
     基于 JSON 的登录端点。
     
     作为 OAuth2 表单登录的替代方案。
+    同时在 Cookie 中设置 token，用于服务端渲染页面的认证。
     """
     result = await db.execute(
         select(User).where(User.email == login_data.email)
@@ -106,16 +108,16 @@ async def login_json(
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="邮箱或密码错误",
         )
     
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user",
+            detail="用户未激活",
         )
     
-    # 为“记住我”调整令牌过期时间
+    # 为"记住我"调整令牌过期时间
     expire_minutes = (
         settings.ACCESS_TOKEN_EXPIRE_MINUTES * 7
         if login_data.remember_me
@@ -128,6 +130,25 @@ async def login_json(
     )
     refresh_token = security_manager.create_refresh_token(user.id)
     
+    # 设置 Cookie（用于服务端渲染页面的认证）
+    cookie_max_age = expire_minutes * 60
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        max_age=cookie_max_age,
+        httponly=True,  # 防止 XSS 攻击
+        samesite="lax",  # CSRF 保护
+        secure=settings.ENVIRONMENT == "production",  # 生产环境使用 HTTPS
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        httponly=True,
+        samesite="lax",
+        secure=settings.ENVIRONMENT == "production",
+    )
+    
     return Token(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -139,8 +160,8 @@ async def login_json(
 @router.post(
     "/refresh",
     response_model=Token,
-    summary="Refresh Token",
-    description="Get a new access token using refresh token",
+    summary="刷新令牌",
+    description="使用刷新令牌获取新的访问令牌",
 )
 async def refresh_token(
     token_data: RefreshTokenRequest,
@@ -157,7 +178,7 @@ async def refresh_token(
     if not decoded or decoded.token_type != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token",
+            detail="无效的刷新令牌",
         )
     
     # 验证用户仍然存在且活跃
@@ -169,7 +190,7 @@ async def refresh_token(
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive",
+            detail="用户不存在或未激活",
         )
     
     # 创建新令牌
@@ -191,8 +212,8 @@ async def refresh_token(
     "/register",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="User Registration",
-    description="Register a new user account",
+    summary="用户注册",
+    description="注册新用户账户",
 )
 async def register(
     user_data: RegisterRequest,
@@ -212,7 +233,7 @@ async def register(
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
+            detail="邮箱已被注册",
         )
     
     # 创建新用户
@@ -234,8 +255,8 @@ async def register(
 
 @router.post(
     "/logout",
-    summary="User Logout",
-    description="Logout and invalidate current token",
+    summary="用户登出",
+    description="登出并失效当前令牌",
 )
 async def logout(
     current_user: User = Depends(get_current_active_user),
@@ -246,14 +267,14 @@ async def logout(
     在生产环境中，您可以将当前令牌加入黑名单。
     """
     # 在生产环境中，将当前令牌加入黑名单
-    return {"message": "Successfully logged out"}
+    return {"message": "成功登出"}
 
 
 @router.get(
     "/me",
     response_model=UserResponse,
-    summary="Get Current User",
-    description="Get current authenticated user information",
+    summary="获取当前用户",
+    description="获取当前已认证用户的信息",
 )
 async def get_me(
     current_user: User = Depends(get_current_active_user),
@@ -264,8 +285,8 @@ async def get_me(
 
 @router.post(
     "/change-password",
-    summary="Change Password",
-    description="Change current user's password",
+    summary="修改密码",
+    description="修改当前用户的密码",
 )
 async def change_password(
     password_data: PasswordChange,
@@ -283,7 +304,7 @@ async def change_password(
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect current password",
+            detail="当前密码错误",
         )
     
     # 更新密码
@@ -292,4 +313,4 @@ async def change_password(
     )
     db.add(current_user)
     
-    return {"message": "Password changed successfully"}
+    return {"message": "密码修改成功"}

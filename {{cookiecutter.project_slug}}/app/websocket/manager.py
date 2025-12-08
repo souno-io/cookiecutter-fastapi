@@ -45,12 +45,12 @@ class ConnectionManager:
         user_id: Optional[str] = None,
     ) -> None:
         """
-        Accept and register a new WebSocket connection.
+        接受并注册新的 WebSocket 连接。
         
-        Args:
-            websocket: WebSocket instance
-            connection_id: Unique connection identifier
-            user_id: Optional user ID for user-specific messaging
+        参数：
+            websocket: WebSocket 实例
+            connection_id: 唯一连接标识符
+            user_id: 可选的用户 ID，用于用户特定消息
         """
         await websocket.accept()
         self.active_connections[connection_id] = websocket
@@ -97,14 +97,14 @@ class ConnectionManager:
         connection_id: str,
     ) -> bool:
         """
-        Send a message to a specific connection.
+        发送消息到特定连接。
         
-        Args:
-            message: Message to send (dict will be JSON-encoded)
-            connection_id: Target connection ID
+        参数：
+            message: 要发送的消息（字典将被 JSON 编码）
+            connection_id: 目标连接 ID
             
-        Returns:
-            True if message was sent successfully
+        返回：
+            消息发送成功返回 True
         """
         websocket = self.active_connections.get(connection_id)
         if not websocket:
@@ -126,14 +126,14 @@ class ConnectionManager:
         user_id: str,
     ) -> int:
         """
-        Send a message to all connections of a specific user.
+        发送消息到特定用户的所有连接。
         
-        Args:
-            message: Message to send
-            user_id: Target user ID
+        参数：
+            message: 要发送的消息
+            user_id: 目标用户 ID
             
-        Returns:
-            Number of connections that received the message
+        返回：
+            收到消息的连接数量
         """
         connection_ids = self.user_connections.get(user_id, set())
         sent = 0
@@ -150,14 +150,14 @@ class ConnectionManager:
         exclude: Optional[Set[str]] = None,
     ) -> int:
         """
-        Broadcast a message to all connected clients.
+        广播消息到所有已连接的客户端。
         
-        Args:
-            message: Message to broadcast
-            exclude: Set of connection IDs to exclude
+        参数：
+            message: 要广播的消息
+            exclude: 要排除的连接 ID 集合
             
-        Returns:
-            Number of connections that received the message
+        返回：
+            收到消息的连接数量
         """
         exclude = exclude or set()
         sent = 0
@@ -193,15 +193,15 @@ class ConnectionManager:
         exclude: Optional[Set[str]] = None,
     ) -> int:
         """
-        Send a message to all connections in a room.
+        发送消息到房间中的所有连接。
         
-        Args:
-            message: Message to send
-            room_id: Target room ID
-            exclude: Set of connection IDs to exclude
+        参数：
+            message: 要发送的消息
+            room_id: 目标房间 ID
+            exclude: 要排除的连接 ID 集合
             
-        Returns:
-            Number of connections that received the message
+        返回：
+            收到消息的连接数量
         """
         exclude = exclude or set()
         connection_ids = self.rooms.get(room_id, set())

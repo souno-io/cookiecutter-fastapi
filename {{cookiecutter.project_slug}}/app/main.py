@@ -26,6 +26,9 @@ from app.db.session import init_db, close_db
 {%- if cookiecutter.include_websocket == "yes" %}
 from app.websocket.handlers import router as websocket_router
 {%- endif %}
+{%- if cookiecutter.include_jinja2 == "yes" %}
+from app.views import router as views_router
+{%- endif %}
 
 
 # 配置日志
@@ -104,12 +107,27 @@ def create_application() -> FastAPI:
     # 配置模板
     templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
     
+    # 注册视图路由
+    app.include_router(views_router)
+    
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def home(request: Request):
         """渲染主页。"""
+        from app.views import get_current_user_from_cookie
+        from app.db.session import get_db
+        
+        # 尝试获取当前用户
+        current_user = None
+        try:
+            async for db in get_db():
+                current_user = await get_current_user_from_cookie(request, db)
+                break
+        except Exception:
+            pass
+        
         return templates.TemplateResponse(
             "index.html",
-            {"request": request, "config": settings},
+            {"request": request, "config": settings, "current_user": current_user},
         )
     {%- else %}
     @app.get("/", include_in_schema=False)
